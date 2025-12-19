@@ -14,6 +14,7 @@
 // ==============================
 
 // ===== GRID DEFAULTS (SLIDERS control these) =====
+let saveBtn;
 let ROWS = 6;
 let COLS = 16;
 const MIN_COLS = 6;
@@ -473,6 +474,7 @@ function layoutUIUnderCanvas() {
   autoBtn.position(btnX, btnStartY + 40);
   flipBtn.position(btnX, btnStartY + 80);
   indBtn.position(btnX, btnStartY + 120);
+  saveBtn.position(btnX, btnStartY + 160); // 기존 버튼 간격 맞춰서
 
   // indicator spans (right side)
   const indX = sliderX + 650;
@@ -547,6 +549,16 @@ function setup() {
     flipOn = !flipOn;
     flipBtn.html(flipOn ? "FLIP GRID: ON" : "FLIP GRID: OFF");
   });
+
+
+saveBtn = createButton("SAVE PNG");
+saveBtn.mousePressed(() => {
+  const ts =
+    `${year()}-${nf(month(),2)}-${nf(day(),2)}_` +
+    `${nf(hour(),2)}-${nf(minute(),2)}-${nf(second(),2)}`;
+  saveCanvas(`keys_${ts}`, "png");
+});
+
 
   indBtn = createButton("INDICATORS: ON");
   indBtn.mousePressed(() => setIndicatorsVisible(!indicatorsOn));
