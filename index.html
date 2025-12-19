@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Keys Grid</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <script defer src="sketch.js"></script>
+</head>
+
+<body>
+
+  <div id="uiPanel"></div>
+
+  <script>
+    (function () {
+      const LABELS = [
+        "ROWS",
+        "COLS",
+        "editKey",
+        "headH",
+        "headW",
+        "roundness",
+        "shaftW",
+        "colorIndex",
+        "toothScale",
+        "toothExtra",
+      ];
+
+      function ensureCanvasOnTop() {
+        const canvas = document.querySelector("canvas");
+        const panel = document.getElementById("uiPanel");
+        if (!canvas || !panel) return false;
+
+        // ✅ canvas를 항상 uiPanel 위로(앞으로) 이동
+        if (canvas.nextElementSibling !== panel) {
+          document.body.insertBefore(canvas, panel);
+        }
+        return true;
+      }
+
+      function buildUI() {
+        const panel = document.getElementById("uiPanel");
+        const canvas = document.querySelector("canvas");
+        if (!panel || !canvas) return false;
+
+        const sliders = Array.from(document.querySelectorAll(".p5Slider"));
+        const buttons = Array.from(document.querySelectorAll(".p5Button"));
+        if (sliders.length < 2 || buttons.length < 1) return false;
+
+        // 이미 구성됐으면 스킵
+        if (panel.querySelector(".ui-grid")) return true;
+
+        // 패널 레이아웃 생성
+        const grid = document.createElement("div");
+        grid.className = "ui-grid";
+
+        const left = document.createElement("div");
+        left.className = "ui-left";
+
+        const right = document.createElement("div");
+        right.className = "ui-right";
+
+        // ✅ 버튼은 오른쪽(세로)
+        buttons.forEach(b => right.appendChild(b));
+
+        // ✅ 슬라이더는 왼쪽: 라벨 / 슬라이더 / 값
+        sliders.forEach((wrap, i) => {
+          const row = document.createElement("div");
+          row.className = "ui-item";
+
+          const lab = document.createElement("div");
+          lab.className = "ui-label";
+          lab.textContent = LABELS[i] || `slider${i}`;
+
+          const val = document.createElement("div");
+          val.className = "ui-value";
+          val.textContent = "";
+
+          wrap._valueEl = val;
+
+          row.appendChild(lab);
+          row.appendChild(wrap);
+          row.appendChild(val);
+          left.appendChild(row);
+        });
+
+        panel.innerHTML = "";
+        grid.appendChild(left);
+        grid.appendChild(right);
+        panel.appendChild(grid);
+
+        // (기존 drawLabel로 찍히던 텍스트는 “캔버스 위”에 계속 나올 수 있음.
+        //  그건 sketch.js를 안 건드리기 때문에 건드리지 않음.)
+
+        return true;
+      }
+
+      function updateValues() {
+        document.querySelectorAll(".p5Slider").forEach((wrap) => {
+          if (!wrap._valueEl) return;
+          const input = wrap.querySelector('input[type="range"]');
+          if (!input) return;
+
+          const raw = Number(input.value);
+          const step = input.step ? Number(input.step) : 1;
+
+          // 정수형 step이면 정수로, 아니면 소수 2자리
+          wrap._valueEl.textContent =
+            (Number.isInteger(step) && step >= 1) ? String(Math.round(raw)) : raw.toFixed(2);
+        });
+
+        requestAnimationFrame(updateValues);
+      }
+
+      function tick() {
+        // 1) canvas가 있으면 무조건 uiPanel 위로 올림
+        ensureCanvasOnTop();
+
+        // 2) UI 구성 (슬라이더/버튼이 아직 없으면 기다림)
+        const ok = buildUI();
+        if (!ok) requestAnimationFrame(tick);
+        else updateValues();
+      }
+
+      // defer 로딩이 끝난 뒤에도 p5가 DOM 생성은 setup 이후라서 기다림
+      tick();
+    })();
+  </script>
+</body>
+</html>

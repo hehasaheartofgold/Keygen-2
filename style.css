@@ -1,0 +1,205 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.hidden {
+  display: none !important;
+}
+
+canvas {
+  display: block;
+}
+
+/* ===== UI LAYOUT: sliders LEFT / buttons RIGHT ===== */
+#uiPanel .ui-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: start;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* LEFT: slider list */
+#uiPanel .ui-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+#uiPanel .ui-item {
+  display: grid;
+  grid-template-columns: 140px 1fr 120px;
+  gap: 8px;
+  align-items: center;
+}
+
+#uiPanel .ui-label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  opacity: 0.95;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* slider wrapper created by p5 */
+#uiPanel .p5Slider {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+}
+
+/* actual range input */
+#uiPanel .p5Slider input[type="range"] {
+  width: 100%;
+  height: 6px;
+  accent-color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  transition: accent-color 0.2s ease;
+}
+
+#uiPanel .p5Slider input[type="range"]:hover {
+  accent-color: rgba(255, 255, 255, 0.9);
+}
+
+#uiPanel .p5Slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#uiPanel .p5Slider input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* indicator spans (values) */
+#uiPanel .ui-ind {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  font-size: 12px;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+/* slider value display */
+#uiPanel .ui-value {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.95;
+  text-align: right;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 100px;
+}
+
+/* RIGHT: buttons (세로 일렬 정렬) */
+#uiPanel .ui-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  min-width: 180px;
+  max-width: 220px;
+  justify-content: flex-start;
+  flex-shrink: 0;
+}
+
+#uiPanel .p5Button {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  margin: 0 !important;
+  width: 100%;
+  display: block;
+}
+
+#uiPanel .p5Button button {
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+#uiPanel .p5Button button:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+  transform: translateY(-1px);
+}
+
+#uiPanel .p5Button button:active {
+  transform: translateY(0);
+  background: rgba(255,255,255,0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+  #uiPanel {
+    padding: 16px 20px;
+  }
+  
+  #uiPanel .ui-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  #uiPanel .ui-item {
+    grid-template-columns: 120px 1fr 100px;
+    gap: 6px;
+  }
+  
+  #uiPanel .ui-right {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 768px) {
+  #uiPanel {
+    padding: 14px 16px;
+    max-height: 60vh;
+    margin-top: 40px;
+  }
+  
+  #uiPanel .ui-item {
+    grid-template-columns: 100px 1fr 80px;
+    gap: 5px;
+  }
+  
+  #uiPanel .ui-label,
+  #uiPanel .ui-value {
+    font-size: 12px;
+  }
+  
+  #uiPanel .p5Button button {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
