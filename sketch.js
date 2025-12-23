@@ -15,8 +15,8 @@
 
 // ===== GRID DEFAULTS (SLIDERS control these) =====
 let saveBtn;
-let ROWS = 6;
-let COLS = 16;
+let ROWS = 9;
+let COLS = 22;
 const MIN_COLS = 6;
 
 let backcolor = 0;
@@ -329,7 +329,7 @@ function drawKeyAt(xCenter, cellTopY, cellH, k, xScale, flipY = false) {
   const tipH_raw = shaftW * 0.35;
 
   // row-dependent min shaft length
-  const minShaftBody = max(55, cellH * 0.22);
+  const minShaftBody = cellH * 0.15;  // 고정값 제거
 
   // head gets what's left AFTER reserving (minShaftBody + tip)
   const reserveBase_raw = GAP + overlap;
