@@ -27,13 +27,12 @@ const PALETTE = [
 const SPRING = { k: 0.15, damping: 0.75 };
 
 let controls = {};
-let randomAllBtn, autoBtn, flipBtn, saveBtn;
+let randomAllBtn, autoBtn, flipBtn, saveBtn, fullscreenBtn;
 let autoOn = true;
 let lastAutoMs = 0;
 let flipOn = true;
 
 let selectedIdx = -1; 
-let zoomProg = 0;     
 
 let keys = [];
 let KEY_COUNT = 0;
@@ -80,9 +79,9 @@ function makeKey() {
     headH: new SpringValue(250 + random(-60, 60)),
     round: new SpringValue(random(0.25, 1.0)),
     shaftW: new SpringValue(100 + random(-20, 20)),
-    colorIdx: new SpringValue(floor(random(0, PALETTE.length))),
     toothScale: new SpringValue(random(1.2, 2.3)),
     toothExtra: new SpringValue(random(0, 10)),
+    colorIdx: new SpringValue(floor(random(0, PALETTE.length))),
     lastCX: 0, lastTY: 0, lastCH: 0, lastXS: 0
   };
 }
@@ -104,7 +103,14 @@ function rebuildGrid(nr, nc) {
   KEY_COUNT = ROWS * COLS;
   keys = Array.from({ length: KEY_COUNT }, makeKey);
   keys.forEach(k => randomizeKeyTargets(k));
+  
+  // 선택 해제 및 슬라이더 업데이트
   selectedIdx = -1;
+  if (controls.selectedKey) {
+    controls.selectedKey.slider.elt.max = KEY_COUNT - 1;
+    controls.selectedKey.value = -1;
+    controls.selectedKey.setUI(-1);
+  }
 }
 
 function syncUIToKey(idx) {
@@ -114,38 +120,37 @@ function syncUIToKey(idx) {
   controls.headW.setUI(k.headW.target);
   controls.roundness.setUI(k.round.target);
   controls.shaftW.setUI(k.shaftW.target);
-  controls.colorIndex.setUI(k.colorIdx.target);
   controls.toothScale.setUI(k.toothScale.target);
   controls.toothExtra.setUI(k.toothExtra.target);
+  controls.colorIndex.setUI(k.colorIdx.target);
 }
 
 function applyUIToSelected() {
-  if (selectedIdx === -1) return;
+  if (selectedIdx === -1 || selectedIdx >= keys.length) return;
   const k = keys[selectedIdx];
+  
+  // headW를 먼저 적용
+  const newHeadW = controls.headW.slider.value();
+  k.headW.setTarget(newHeadW);
   k.headH.setTarget(controls.headH.slider.value());
-  k.headW.setTarget(controls.headW.slider.value());
   k.round.setTarget(controls.roundness.slider.value());
-  k.shaftW.setTarget(controls.shaftW.slider.value());
-  k.colorIdx.setTarget(controls.colorIndex.slider.value());
+  
+  // shaftW는 headW에 종속되므로 범위 제한 적용
+  const newShaftW = controls.shaftW.slider.value();
+  const minShaftW = newHeadW * 0.2;
+  const maxShaftW = newHeadW * 0.4;
+  k.shaftW.setTarget(constrain(newShaftW, minShaftW, maxShaftW));
+  
   k.toothScale.setTarget(controls.toothScale.slider.value());
   k.toothExtra.setTarget(controls.toothExtra.slider.value());
+  k.colorIdx.setTarget(controls.colorIndex.slider.value());
 }
 
 function drawKeyAt(xCenter, cellTopY, cellH, k, xScale, flipY, isSelected) {
   push();
   let drawX = xCenter, drawY = cellTopY, drawH = cellH, drawXS = xScale;
 
-  if (isSelected) {
-    let targetMag = (height * 0.5) / cellH; 
-    let targetX = width / 2;
-    let targetY = (height * 0.45) - (cellH * targetMag) / 2; // 중앙 강조 위치 최적화
-    drawX = lerp(xCenter, targetX, zoomProg);
-    drawY = lerp(cellTopY, targetY, zoomProg);
-    drawH = lerp(cellH, cellH * targetMag, zoomProg);
-    drawXS = lerp(xScale, xScale * targetMag, zoomProg);
-  }
-
-  if (flipY && !isSelected) {
+  if (flipY) {
     translate(0, drawY + drawH / 2);
     scale(1, -1);
     translate(0, -(drawY + drawH / 2));
@@ -166,11 +171,19 @@ function drawKeyAt(xCenter, cellTopY, cellH, k, xScale, flipY, isSelected) {
   let shaftTopY = drawY + headH + gapY + overlapY;
   let shaftBodyH = (drawY + drawH) - tipH - shaftTopY;
 
+  // 선택된 열쇠는 흰색 테두리 추가
+  if (isSelected) {
+    stroke(255);
+    strokeWeight(3);
+  } else {
+    noStroke();
+  }
+
   fill(PALETTE[constrain(floor(k.colorIdx.get() + 0.5), 0, PALETTE.length - 1)]);
-  noStroke();
   const rd = k.round.get() * (min(headW_x, headH) / 2);
   rectMode(CENTER);
   rect(drawX, headY, headW_x, headH, rd);
+  
   const half = shaftW_x / 2;
   beginShape();
   vertex(drawX - half, shaftTopY);
@@ -179,6 +192,7 @@ function drawKeyAt(xCenter, cellTopY, cellH, k, xScale, flipY, isSelected) {
   vertex(drawX, shaftTopY + shaftBodyH + tipH);
   vertex(drawX - half, shaftTopY + shaftBodyH);
   endShape(CLOSE);
+  
   const tScale = k.toothScale.get();
   const tBaseY = (26 * tScale) * yScale, tOutX = (18 * tScale) * drawXS;
   const jointY = shaftTopY + shaftBodyH;
@@ -190,21 +204,12 @@ function drawKeyAt(xCenter, cellTopY, cellH, k, xScale, flipY, isSelected) {
     if (py - tBaseY < shaftTopY) break; 
     triangle(drawX + half, py, drawX + half, py - tBaseY, drawX + half + tOutX, py - tBaseY * 0.5);
   }
+  
+  noStroke();
   fill(backcolor);
   circle(drawX, headY - (sqrt(max(1, headW * headH_raw)) * 0.15) * yScale, (sqrt(max(1, headW * headH_raw)) * 0.2) * yScale);
   pop();
 }
-
-// function mousePressed() {
-//   if (mouseY > height - 100) return; // 클릭 방지 영역 축소 (브라우저 전체 활용)
-//   if (selectedIdx !== -1) { selectedIdx = -1; return; }
-//   for (let i = 0; i < keys.length; i++) {
-//     let k = keys[i];
-//     if (dist(mouseX, mouseY, k.lastCX, k.lastTY + k.lastCH/2) < 35) {
-//       selectedIdx = i; syncUIToKey(i); return;
-//     }
-//   }
-// }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -217,10 +222,13 @@ function setup() {
   controls.headW = new SpringSlider({ min: 100 * headWmin, max: 250 * headWmax, start: 250, step: 0.001, label: "headW" });
   controls.roundness = new SpringSlider({ min: 0.25, max: 1, start: 1, step: 0.001, label: "roundness" });
   controls.shaftW = new SpringSlider({ min: 40, max: 150, start: 100, step: 0.001, label: "shaftW" });
-  controls.colorIndex = new SpringSlider({ min: 0, max: PALETTE.length - 1, start: 0, step: 1, label: "colorIndex" });
   controls.toothScale = new SpringSlider({ min: 1.2, max: 2.3, start: 2.0, step: 0.001, label: "toothScale" });
   controls.toothExtra = new SpringSlider({ min: 0, max: 20, start: 5, step: 0.001, label: "toothExtra" });
-
+  
+  controls.selectedKey = new SpringSlider({ min: -1, max: 197, start: -1, step: 1, label: "selectedKey" });
+  
+  controls.colorIndex = new SpringSlider({ min: 0, max: PALETTE.length - 1, start: 0, step: 1, label: "colorIndex" });
+  
   randomAllBtn = createDiv().addClass("p5Button").child(createButton("RANDOMIZE ALL").mousePressed(() => keys.forEach(randomizeKeyTargets)));
   autoBtn = createDiv().addClass("p5Button").child(createButton("AUTO RANDOM: ON").mousePressed(() => {
     autoOn = !autoOn; autoBtn.child()[0].html(autoOn ? "AUTO RANDOM: ON" : "AUTO RANDOM: OFF");
@@ -229,13 +237,27 @@ function setup() {
     flipOn = !flipOn; flipBtn.child()[0].html(flipOn ? "FLIP GRID: ON" : "FLIP GRID: OFF");
   }));
   saveBtn = createDiv().addClass("p5Button").child(createButton("SAVE PNG").mousePressed(() => saveCanvas('keys', 'png')));
+  
+  fullscreenBtn = createDiv().addClass("p5Button").child(createButton("FULLSCREEN").mousePressed(() => {
+    let fs = fullscreen();
+    fullscreen(!fs);
+    fullscreenBtn.child()[0].html(fs ? "EXIT FULLSCREEN" : "FULLSCREEN");
+  }));
 
   rebuildGrid(ROWS, COLS);
 }
 
 function draw() {
   background(backcolor);
-  zoomProg = lerp(zoomProg, selectedIdx !== -1 ? 1 : 0, 0.15);
+  
+  // 선택된 키 슬라이더 값 적용
+  let sliderSelectedIdx = Math.round(controls.selectedKey.get());
+  if (sliderSelectedIdx !== selectedIdx && sliderSelectedIdx >= -1 && sliderSelectedIdx < keys.length) {
+    selectedIdx = sliderSelectedIdx;
+    if (selectedIdx >= 0 && selectedIdx < keys.length) {
+      syncUIToKey(selectedIdx);
+    }
+  }
 
   if (rowsSlider.value() !== lastRows || colsSlider.value() !== lastCols) {
     lastRows = rowsSlider.value(); lastCols = colsSlider.value();
@@ -253,7 +275,6 @@ function draw() {
     k.colorIdx.update(); k.toothScale.update(); k.toothExtra.update();
   });
 
-  // ✅ cellH 계산에서 하단 여백 최적화 (브라우저 가득 채우기)
   const cellH = (height - MARGIN_Y * 2 - ROW_GAP_Y * (ROWS - 1)) / ROWS;
   const availableW = width - MARGIN_X * 2 - HEAD_GAP_X * (COLS - 1);
 
@@ -269,14 +290,9 @@ function draw() {
       const kw = k.headW.get() * xScale;
       const cx = xLeft + kw / 2, ty = MARGIN_Y + r * (cellH + ROW_GAP_Y);
       k.lastCX = cx; k.lastTY = ty; k.lastCH = cellH; k.lastXS = xScale;
-      if (idx !== selectedIdx) drawKeyAt(cx, ty, cellH, k, xScale, flipOn && (r + c) % 2 === 1, false);
+      drawKeyAt(cx, ty, cellH, k, xScale, flipOn && (r + c) % 2 === 1, idx === selectedIdx);
       xLeft += kw + HEAD_GAP_X;
     }
-  }
-
-  if (selectedIdx !== -1) {
-    let sk = keys[selectedIdx];
-    drawKeyAt(sk.lastCX, sk.lastTY, sk.lastCH, sk, sk.lastXS, false, true);
   }
 }
 
