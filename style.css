@@ -6,6 +6,16 @@ html, body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+html, body {
+  -ms-overflow-style: none;  /* IE, Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 .hidden {
   display: none !important;
 }
